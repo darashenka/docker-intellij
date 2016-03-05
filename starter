@@ -5,7 +5,7 @@ xhost local:
 USER_UID=$(id -u)
 USER_GID=$(id -g)
 USER_NAME=$(id -u -n)
-docker_env="--net=none"
+: ${docker_env:=--net=none}
 
 docker_image="darashenka/intellij:latest"
 confdir=${HOME}/.IntelliJIdea14
