@@ -1,0 +1,37 @@
+#!/bin/bash
+
+xhost local:
+
+USER_UID=$(id -u)
+USER_GID=$(id -g)
+USER_NAME=$(id -u -n)
+docker_env="--net=none"
+
+docker_image="darashenka/intellij:latest"
+confdir=${HOME}/.IntelliJIdea14
+
+  # remove stopped containers
+echo "Removing stopped containers..."
+for c in $(docker ps -a -q); do
+    image="$(docker inspect -f {{.Config.Image}} ${c})"
+    if [ "${image}" == "$docker_image" ]; then
+      running=$(docker inspect -f {{.State.Running}} ${c})
+      if [ "${running}" != "true" ]; then
+        docker rm "${c}" >/dev/null
+      fi
+    fi
+done
+
+
+echo "Starting ${prog}..."
+docker run --rm -ti \
+    $docker_env \
+    --env="USER_NAME=${USER_NAME}" \
+    --env="USER_UID=${USER_UID}" \
+    --env="USER_GID=${USER_GID}" \
+    --env="DISPLAY=${DISPLAY}" \
+    --volume=/etc/localtime:/etc/localtime \
+    --volume=${confdir}:${confdir} \
+    --volume=${HOME}/src:${HOME}/src \
+    --volume=/tmp/.X11-unix:/tmp/.X11-unix \
+    $docker_image $@

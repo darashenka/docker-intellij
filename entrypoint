@@ -1,0 +1,49 @@
+#!/bin/bash
+set -e
+
+prog=idea
+
+case "$1" in
+  install)
+    echo "Installing $prog..."
+    install -m 0755 /scripts/starter /target/$prog
+    ;;
+  uninstall)
+    echo "Uninstalling $prog..."
+    rm -rf /target/$prog
+    ;;
+  bash)
+    exec $@
+    ;;
+  *)
+    # uid and gid of host user
+    USER_UID=${USER_UID:-1000}
+    USER_GID=${USER_GID:-1000}
+    USER_NAME=${USER_NAME:-dev}
+
+    # create user group
+    if ! getent group $USER_NAME >/dev/null; then
+      groupadd -f -g ${USER_GID} $USER_NAME >/dev/null 2>&1
+    fi
+
+    # create user with uid and gid matching that of the host user
+    if ! getent passwd $USER_NAME >/dev/null; then
+      adduser --gecos "dev" --disabled-login --uid ${USER_UID} --gid ${USER_GID} $USER_NAME >/dev/null 2>&1
+    fi
+
+set -vx
+
+    # launch application as skype
+    cd /home/$USER_NAME
+
+    # Install syntax highlighting for Docker files if not present
+    mkdir -p .IdeaIC14/config/filetypes
+    if [ ! -f .IdeaIC14/config/filetypes/Dockerfile.xml ]; then
+        wget -q -O .IdeaIC14/config/filetypes/Dockerfile.xml https://raw.githubusercontent.com/masgari/docker-intellij-idea/master/Dockerfile.xml || true
+    fi
+    # take ownership
+    chown $USER_NAME:$USER_NAME -R /home/$USER_NAME
+
+# Start IDEA with all output redirected
+    sudo -u $USER_NAME /opt/intellij/bin/idea.sh "$@"
+esac
